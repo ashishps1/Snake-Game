@@ -1,6 +1,8 @@
 import pygame
 import time
 import random
+import pickle
+import os
 
 pygame.init()
 
@@ -48,7 +50,12 @@ smallFont=pygame.font.SysFont("comicsansms",25)
 medFont=pygame.font.SysFont("comicsansms",50)
 largeFont=pygame.font.SysFont("comicsansms",80)
 
-def randFruit():
+highestScore = 0
+
+if os.path.isfile('highestScore.p'):
+	highestScore = pickle.load(open( "highestScore.p", "rb" ))
+
+def getRandomFruit():
     r=random.randrange(0,noOfFruits)
     return listOfFruits[r]
     
@@ -80,18 +87,22 @@ def pause():
             pygame.display.update()
             clock.tick(5)
             
-                       
-
 def score(score):
+    global highestScore
     text=smallFont.render('Score: '+str(score), True,black)
     gameDisplay.blit(text,[0,0])
+    
+    if score > highestScore:
+        highestScore = score
+        
+    text=smallFont.render('Highest Score: '+str(highestScore), True,black)
+    gameDisplay.blit(text,[750,0])
 
 def randFruitGen():
     randFruitX=round(random.randrange(0,displayWidth-FruitThickness))#/10.0)*10.0
     randFruitY=round(random.randrange(0,displayHeight-FruitThickness))#/10.0)*10.0
 
     return randFruitX,randFruitY
-
 
 def game_intro():
     intro=True
@@ -115,16 +126,16 @@ def game_intro():
                           green,
                           -100,
                           'large')
-        messageToScreen("The objective of game is to eat red apples",
+        messageToScreen("The objective of game is to eat fruits",
                           black,
                           -30)
-        messageToScreen("The more apples you eat, the longer you get",
+        messageToScreen("The more fruits you eat, the longer you get and more you score",
                           black,
                           10)
         messageToScreen("If you run into yourself, or the edges, you die!",
                           black,
                           50)
-        messageToScreen("Press C to play or P to pause or Q to quit",
+        messageToScreen("Press C to play or W to watch or P to pause or Q to quit",
                           black,
                           180)
         pygame.display.update()
@@ -172,6 +183,8 @@ def gameLoop():
     gameExit=False
     gameOver=False
 
+    global highestScore	
+	
     lead_x=displayWidth/2
     lead_y=displayHeight/2
     
@@ -185,7 +198,7 @@ def gameLoop():
     pygame.mixer.Sound.play(mainSound)
 
     randFruitX,randFruitY=randFruitGen()
-    randomFruit=randFruit()
+    randomFruit=getRandomFruit()
     
     while not gameExit:
 
@@ -241,13 +254,14 @@ def gameLoop():
                   
         if lead_x>=displayWidth or lead_x<=0 or lead_y>=displayHeight or lead_y<=0:
             pygame.mixer.Sound.play(boundaryHit)
+	    if score > highestScore:
+		pickle.dump(highestScore, open( "highestScore.p", "wb" ))
             gameOver=True
             
         lead_x+=lead_x_change
         lead_y+=lead_y_change
         
         gameDisplay.fill(white)
-
 
         gameDisplay.blit(randomFruit,(randFruitX,randFruitY))
         
@@ -270,12 +284,11 @@ def gameLoop():
         
         pygame.display.update()
 
-   
         if (lead_x>randFruitX and lead_x<randFruitX+FruitThickness) or (lead_x+blockSize>randFruitX and lead_x+blockSize<randFruitX+FruitThickness):
             if (lead_y>randFruitY and lead_y<randFruitY+FruitThickness) or (lead_y+blockSize>randFruitY and lead_y+blockSize<randFruitY+FruitThickness):
                 pygame.mixer.Sound.play(eatSound)
                 randFruitX,randFruitY=randFruitGen()
-                randomFruit=randFruit()
+                randomFruit=getRandomFruit()
                 snakeLength+=1
              
 
